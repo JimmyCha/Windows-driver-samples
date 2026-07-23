@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.jimmycha.vocabking'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.jimmycha.vocabking'
+        minSdk 23
+        targetSdk 35
+        versionCode 12
+        versionName '1.2'
+    }
+}
