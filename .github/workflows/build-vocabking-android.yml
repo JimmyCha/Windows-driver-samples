@@ -1,0 +1,59 @@
+name: Build VocabKing Android APK
+
+on:
+  push:
+    branches: [ android-vocabking-v1.2 ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        run: yes | sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Restore 2000-word vocabulary
+        working-directory: android-vocabking
+        run: |
+          mkdir -p app/src/main/assets
+          cat vocab/chunk1.b64 vocab/chunk2.b64 vocab/chunk3.b64 | base64 --decode | gzip --decompress > app/src/main/assets/vocabulary.json
+          python3 - <<'PY'
+          import json
+          with open('app/src/main/assets/vocabulary.json', encoding='utf-8') as f:
+              data = json.load(f)
+          assert len(data) == 2000, len(data)
+          print('Vocabulary entries:', len(data))
+          PY
+
+      - name: Install Gradle 8.7
+        working-directory: android-vocabking
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q gradle-8.7-bin.zip
+
+      - name: Build APK
+        working-directory: android-vocabking
+        run: ./gradle-8.7/bin/gradle assembleDebug --stacktrace
+
+      - name: Rename APK
+        run: cp android-vocabking/app/build/outputs/apk/debug/app-debug.apk VocabKing-Android-v1.2.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VocabKing-Android-v1.2
+          path: VocabKing-Android-v1.2.apk
+          if-no-files-found: error
